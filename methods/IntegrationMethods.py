@@ -19,13 +19,13 @@ dep_var = TypeVar("dep_var", Optional[Union[list, np.array, np.ndarray]], Any)  
 
 class RungeKutta:
     "Abstract class for implementing Runge Kutta integrattion numerical method"
-    def __init__(self) -> Any:
+    def __init__(self) -> None:
         pass
     def derivative(self, x_n: float, y_n: dep_var_elem) -> dep_var_elem:
         """reaceives a custom derivative fn with variables to be made derivative of
         returns f', f'', f'', etc. in a list"""
         return NotImplementedError
-    def integrate(self, U0: dep_var_elem, x: ind_var, h: float, coeffs: ind_var) -> dep_var:
+    def integrate(self, U0: dep_var_elem, x: ind_var, coeffs: ind_var) -> dep_var:
         return NotImplementedError
 
 class RK4(RungeKutta):
@@ -46,7 +46,7 @@ class RK4(RungeKutta):
         k4 = self.derivative(x_n + h, y_n + k3*h)
         y_s = np.inner(coeffs, h*np.array([k1, k2, k3, k4]).transpose())
         return y_s
-    def integrate(self, Y0: dep_var_elem, x: ind_var, h: float, coeffs : ind_var) -> dep_var:
+    def integrate(self, Y0: dep_var_elem, x: ind_var, coeffs : ind_var) -> dep_var:
         """takes: 
                 step size h from outside, dep vairiable list/array, and inital condition on Y or Y0
             returns:
@@ -59,25 +59,35 @@ class RK4(RungeKutta):
         else:
             coeffs = np.array(coeffs)    # can be passed as [1/6., 2/6., 2/6., 1/6.] from outside if needed
         # need to get length of x so we can pass it in the loop
-        try:
-            len_x = len(x)
-        except:
-            len_x = x.shape[0]
+        if x is None:
+            raise Exception("x cannot be None")
+        else:
+            try:
+                len_x = len(x)
+            except:
+                len_x = x.shape[0]
         for n in range(len_x -1):
             # do it for all Xs using values at the first x: X0
             x_n = x[n]
             y_n = y[n, :]
             # do it for f, f', f'', etc together by calling step
+            h = x[n+1] - x[n]
             y[n+1, :] = self._step(x_n, y_n, h, coeffs)
         return y
 
 if __name__=='__main__':
     print(f"Running Main")
-    def second_order_der(x: float, y: dep_var_elem) -> dep_var_elem:
-        y_der: dep_var_elem = np.array([1., 2., 0.])
+    def second_order_fixed(x: float, y: dep_var_elem) -> dep_var_elem:
+        y_der: dep_var_elem = np.array([1., 0., 0.])
+        return y_der
+    
+    def second_order_lin(x: float, y: dep_var_elem) -> dep_var_elem:
+        y_der: dep_var_elem = np.array([y[1], y[2], 0.3])
         return y_der
 
-    rk = RK4(second_order_der, 2)
-    dydt = rk.derivative(1., [1., 0., 0.])
-    print(dydt)
+    rk = RK4(second_order_lin, 2)
+    dydx = rk.derivative(1., [1., 0.4, 0.2])
+    print(dydx)
+    new_y = rk._step(0, [0, 0.4, 1.], 0.1, [0.25, 0.25, .25, 0.25])
+    print(new_y)
     print(f"Finished running main fn!")
